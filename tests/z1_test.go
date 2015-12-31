@@ -2,8 +2,8 @@ package pakpos_test_1
 
 import (
 	"fmt"
-	. "github.com/eaciit/pakpos/v1"
 	"github.com/eaciit/toolkit"
+	. "pakpos/v1"
 	//"strings"
 	"testing"
 	"time"
@@ -21,6 +21,8 @@ var (
 
 func init() {
 	b = new(Broadcaster)
+	b.CertificatePath = "/cert.pem"
+	b.PrivateKeyPath = "/key.pem"
 	b.Start("https://localhost:12345", broadcastSecret)
 
 	/*
