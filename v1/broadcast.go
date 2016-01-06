@@ -4,8 +4,17 @@ import (
 	"fmt"
 	"github.com/eaciit/knot/knot.v1"
 	"github.com/eaciit/toolkit"
+	_ "net/http"
+	"net/url"
+	//"os"
+	//"os/exec"
+	"crypto/tls"
 	"strings"
 	//"time"
+)
+
+var (
+	pro string
 )
 
 type SubscriberInfo struct {
@@ -25,18 +34,62 @@ type Broadcaster struct {
 	userTokens         map[string]*Token
 	channelSubscribers map[string][]string
 	messages           map[string]*MessageMonitor
+	Certificate        string
+	PrivateKey         string
 }
 
-func (b *Broadcaster) Start(address string, secret string) {
-	b.Address = address
-	b.secret = secret
-	app := knot.NewApp("pakpos")
-	app.Register(b)
-	app.DefaultOutputType = knot.OutputJson
-	knot.RegisterApp(app)
-	go func() {
-		knot.StartApp(app, address)
-	}()
+type Hello struct {
+}
+
+func (h *Hello) Index(r *knot.WebContext) interface{} {
+	r.Config.OutputType = knot.OutputHtml
+	return "Accessing /index using SSL enabled from knot.StartApp"
+}
+
+func (b *Broadcaster) Start(address, secret, cert, key string) {
+	var u, er = url.Parse(address)
+	if er != nil {
+		fmt.Println(er.Error())
+	}
+
+	var scheme = u.Scheme
+	pro = scheme
+
+	if scheme == "https" {
+		conn, err := tls.Dial(
+			"tcp",
+			"127.0.0.1:8000",
+			&tls.Config{
+				InsecureSkipVerify: true,
+				ServerName:         "127.0.0.1",
+			},
+		)
+		/*basepath, _ := os.Getwd()*/
+		b.Address = address
+		b.secret = secret
+		app := knot.NewApp("pakpos")
+		app.Register(b)
+		app.Register(&Hello{})
+		app.UseSSL = true
+		app.CertificatePath = cert
+		app.PrivateKeyPath = key
+		app.DefaultOutputType = knot.OutputJson
+		knot.RegisterApp(app)
+		go func() {
+			knot.StartApp(app, u.Host)
+		}()
+
+	} else {
+		b.Address = address
+		b.secret = secret
+		app := knot.NewApp("pakpos")
+		app.Register(b)
+		app.DefaultOutputType = knot.OutputJson
+		knot.RegisterApp(app)
+		go func() {
+			knot.StartApp(app, address)
+		}()
+	}
 }
 
 func (b *Broadcaster) initToken() {
@@ -108,7 +161,7 @@ func (b *Broadcaster) AddNode(k *knot.WebContext) interface{} {
 	}
 	si := new(SubscriberInfo)
 	si.Address = nodeModel.Subscriber
-	si.Protocol = "http"
+	si.Protocol = pro
 	si.Secret = toolkit.RandomString(32)
 	b.Subscibers[nodeModel.Subscriber] = si
 	result.Data = si.Secret
