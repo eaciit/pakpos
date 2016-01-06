@@ -2,12 +2,14 @@ package pakpos_test_1
 
 import (
 	"fmt"
-	. "github.com/eaciit/pakpos/v1"
+	//. "github.com/eaciit/pakpos/v1"
 	"github.com/eaciit/toolkit"
-	"strings"
+	. "pakpos/v1"
+	//"strings"
 	"testing"
 	"time"
 	//"net/http"
+	"os"
 )
 
 var (
@@ -20,8 +22,12 @@ var (
 )
 
 func init() {
+	basepath, _ := os.Getwd()
 	b = new(Broadcaster)
-	b.Start("localhost:12345", broadcastSecret)
+	//fmt.Println(basepath)
+	cert := basepath + "/cert.pem"
+	key := basepath + "/key.pem"
+	b.Start("https://localhost:12345", broadcastSecret, cert, key)
 
 	/*
 		for i := 0; i < 3; i++ {
@@ -49,7 +55,7 @@ func TestAddNodes(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		sub := new(Subscriber)
 		//sub.Broadcaster = "http://localhost:12345"
-		e := sub.Start(fmt.Sprintf("localhost:%d", 54321+i), "http://localhost:12345", broadcastSecret)
+		e := sub.Start(fmt.Sprintf("localhost:%d", 54321+i), b.Address, broadcastSecret)
 		if e != nil {
 			t.Errorf("Fail start node %d : %s", i, e.Error())
 		} else {
@@ -111,7 +117,7 @@ func TestBroadcast(t *testing.T) {
 }
 
 func TestSubcribeChannel(t *testing.T) {
-	_, e := toolkit.CallResult("http://"+b.Address+"/broadcaster/subscribechannel", "POST",
+	_, e := toolkit.CallResult(b.Address+"/broadcaster/subscribechannel", "POST",
 		toolkit.M{}.Set("Subscriber", subs[1].Address).Set("Secret", subs[1].Secret).Set("Channel", "Ch01").ToBytes("json", nil))
 	if e != nil {
 		t.Error(e)
@@ -135,7 +141,7 @@ func TestSubcribeChannel(t *testing.T) {
 }
 
 func TestQue(t *testing.T) {
-	_, e := toolkit.CallResult("http://"+b.Address+"/broadcaster/que", "POST",
+	_, e := toolkit.CallResult(b.Address+"/broadcaster/que", "POST",
 		toolkit.M{}.Set("userid", userid).Set("secret", userSecret).Set("key", "Ch01:QueMessage01").Set("data", "Ini adalah Channel 01 Que Message 01").ToBytes("json", nil))
 
 	if e != nil {
@@ -146,8 +152,8 @@ func TestQue(t *testing.T) {
 	time.Sleep(3 * time.Second)
 	found := 0
 	for _, s := range subs {
-		_, e = toolkit.CallResult("http://"+s.Address+"/subscriber/collectmessage", "POST",
-			toolkit.M{}.Set("subscriber", s.Address).Set("secret", s.Secret).Set("key", "").ToBytes("json", nil))
+		_, e = toolkit.CallResult(s.Address+"/subscriber/collectmessage", "POST",
+			toolkit.M{}.Set("subscriber", "http://localhost:12345").Set("secret", s.Secret).Set("key", "").ToBytes("json", nil))
 		if e == nil {
 			found++
 		} else {
@@ -160,7 +166,7 @@ func TestQue(t *testing.T) {
 	}
 }
 func TestQueInvalid(t *testing.T) {
-	_, e := toolkit.CallResult("http://"+b.Address+"/broadcaster/que", "POST",
+	_, e := toolkit.CallResult(b.Address+"/broadcaster/que", "POST",
 		toolkit.M{}.Set("userid", userid).Set("secret", userSecret).Set("key", "Ch01:QueMessage02").Set("data", "Ini adalah Channel 02 Que Message 02").ToBytes("json", nil))
 
 	if e != nil {
@@ -180,9 +186,6 @@ func TestClose0(t *testing.T) {
 }
 
 func call(url, call string, data []byte, expectedStatus int) (*toolkit.Result, error) {
-	if !strings.HasPrefix(url, "http://") {
-		url = "http://" + url
-	}
 	cfg := toolkit.M{}
 	if expectedStatus != 0 {
 		cfg.Set("expectedstatus", expectedStatus)
