@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 	//"net/http"
+	"os"
 )
 
 var (
@@ -20,8 +21,12 @@ var (
 )
 
 func init() {
+	basepath, _ := os.Getwd()
 	b = new(Broadcaster)
-	b.Start("localhost:12345", broadcastSecret)
+	//fmt.Println(basepath)
+	cert := basepath + "/cert.pem"
+	key := basepath + "/key.pem"
+	b.Start("https://localhost:12345", broadcastSecret, cert, key)
 
 	/*
 		for i := 0; i < 3; i++ {
@@ -49,7 +54,7 @@ func TestAddNodes(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		sub := new(Subscriber)
 		//sub.Broadcaster = "http://localhost:12345"
-		e := sub.Start(fmt.Sprintf("localhost:%d", 54321+i), "http://localhost:12345", broadcastSecret)
+		e := sub.Start(fmt.Sprintf("localhost:%d", 54321+i), b.Address, broadcastSecret)
 		if e != nil {
 			t.Errorf("Fail start node %d : %s", i, e.Error())
 		} else {
