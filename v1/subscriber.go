@@ -19,7 +19,7 @@ type Subscriber struct {
 
 func (s *Subscriber) BaseUrl() string {
 	if s.Protocol == "" {
-		s.Protocol = "http"
+		s.Protocol = "https"
 	}
 	return fmt.Sprintf("%s://%s/", s.Protocol, s.Address)
 }

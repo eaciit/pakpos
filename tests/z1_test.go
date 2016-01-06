@@ -2,8 +2,8 @@ package pakpos_test_1
 
 import (
 	"fmt"
-	. "github.com/eaciit/pakpos/v1"
 	"github.com/eaciit/toolkit"
+	. "pakpos/v1"
 	//"strings"
 	"testing"
 	"time"
@@ -23,10 +23,9 @@ var (
 func init() {
 	basepath, _ := os.Getwd()
 	b = new(Broadcaster)
-	//fmt.Println(basepath)
-	cert := basepath + "/cert.pem"
-	key := basepath + "/key.pem"
-	b.Start("https://localhost:12345", broadcastSecret, cert, key)
+	b.CertificatePath = "/cert.pem"
+	b.PrivateKeyPath = "/key.pem"
+	b.Start("https://localhost:12345", broadcastSecret)
 
 	/*
 		for i := 0; i < 3; i++ {
@@ -151,7 +150,7 @@ func TestQue(t *testing.T) {
 	time.Sleep(3 * time.Second)
 	found := 0
 	for _, s := range subs {
-		_, e = toolkit.CallResult(s.Address+"/subscriber/collectmessage", "POST",
+		_, e = toolkit.CallResult("http://"+s.Address+"/subscriber/collectmessage", "POST",
 			toolkit.M{}.Set("subscriber", s.Address).Set("secret", s.Secret).Set("key", "").ToBytes("json", nil))
 		if e == nil {
 			found++

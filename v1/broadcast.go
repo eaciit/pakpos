@@ -8,7 +8,9 @@ import (
 	"net/url"
 	//"os"
 	//"os/exec"
-	"crypto/tls"
+	//"crypto/tls"
+	//"os"
+	//"os/exec"
 	"strings"
 	//"time"
 )
@@ -56,15 +58,7 @@ func (b *Broadcaster) Start(address, secret, cert, key string) {
 	pro = scheme
 
 	if scheme == "https" {
-		conn, err := tls.Dial(
-			"tcp",
-			"127.0.0.1:8000",
-			&tls.Config{
-				InsecureSkipVerify: true,
-				ServerName:         "127.0.0.1",
-			},
-		)
-		/*basepath, _ := os.Getwd()*/
+		//basepath, _ := os.Getwd()
 		b.Address = address
 		b.secret = secret
 		app := knot.NewApp("pakpos")
@@ -76,9 +70,8 @@ func (b *Broadcaster) Start(address, secret, cert, key string) {
 		app.DefaultOutputType = knot.OutputJson
 		knot.RegisterApp(app)
 		go func() {
-			knot.StartApp(app, u.Host)
+			knot.StartApp(app, address)
 		}()
-
 	} else {
 		b.Address = address
 		b.secret = secret
